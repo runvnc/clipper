@@ -75,6 +75,22 @@ echo "Video: ${WIDTH}x${HEIGHT}, Duration: ${DUR}s"
 echo "Trim: ${NEW_START}s to ${NEW_END}s (removing first ${SKIP_START}s, last ${SKIP_END}s)"
 echo "Blur region: ${BLUR_W}x${BLUR_H} at (${BLUR_X},${BLUR_Y})"
 
+# Calculate max blur radius based on crop region dimensions
+# For yuv420p, chroma plane is half size: max_radius = min(crop_w/2, crop_h/2) / 2
+CHROMA_W=$(( BLUR_W / 2 ))
+CHROMA_H=$(( BLUR_H / 2 ))
+if [ "$CHROMA_W" -lt "$CHROMA_H" ]; then
+    MAX_RADIUS=$(( CHROMA_W / 2 ))
+else
+    MAX_RADIUS=$(( CHROMA_H / 2 ))
+fi
+if [ "$MAX_RADIUS" -lt 18 ]; then
+    BLUR_RADIUS=$MAX_RADIUS
+else
+    BLUR_RADIUS=18
+fi
+echo "Blur radius: ${BLUR_RADIUS} (max allowed: ${MAX_RADIUS})"
+
 # Build ffmpeg filter:
 # 1) delogo is an option but boxblur in a region is more reliable
 # 2) We use crop the region, blur it, and overlay it back
@@ -86,7 +102,7 @@ echo "Blur region: ${BLUR_W}x${BLUR_H} at (${BLUR_X},${BLUR_Y})"
 #   - Overlay the blurred region back onto the main video
 
 BLUR_FILTER="[0:v]split=2[main][blursrc];"\
-"[blursrc]crop=${BLUR_W}:${BLUR_H}:${BLUR_X}:${BLUR_Y},boxblur=18:2:18:2[blurred];"\
+"[blursrc]crop=${BLUR_W}:${BLUR_H}:${BLUR_X}:${BLUR_Y},boxblur=${BLUR_RADIUS}:2:${BLUR_RADIUS}:2[blurred];"\
 "[main][blurred]overlay=${BLUR_X}:${BLUR_Y}[out]"
 
 ffmpeg -y \
