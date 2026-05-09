@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clipper - Video Clip Tagger</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div id="app">
+        <h1>🎬 Clipper</h1>
+        <p class="subtitle">Video Clip Tagger for LTX Video 2.3 Fine-Tuning</p>
+
+        <!-- Directory Config -->
+        <div class="config-row">
+            <div class="config-group">
+                <label for="sourceDir">Source Video Dir</label>
+                <input type="text" id="sourceDir" placeholder="/path/to/videos">
+                <button id="loadVideosBtn">Load</button>
+            </div>
+            <div class="config-group">
+                <label for="outputDir">Output Dir</label>
+                <input type="text" id="outputDir" placeholder="/path/to/output">
+            </div>
+        </div>
+
+        <!-- Video Selector -->
+        <div class="video-selector">
+            <label for="videoSelect">Video</label>
+            <select id="videoSelect">
+                <option value="">-- Load a directory first --</option>
+            </select>
+        </div>
+
+        <!-- Video Player -->
+        <div class="player-container">
+            <video id="videoPlayer" controls></video>
+            <div class="timeline" id="timeline">
+                <div class="timeline-track">
+                    <div class="clip-region" id="clipRegion"></div>
+                    <div class="marker marker-in" id="markerIn"></div>
+                    <div class="marker marker-out" id="markerOut"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <div class="scrub-controls">
+                <button id="scrubBack1s" title="Shift+Left">⏪ 1s</button>
+                <button id="scrubBackFrame" title="Left">◀ Frame</button>
+                <button id="playPause" title="Space">▶ Play</button>
+                <button id="scrubForwardFrame" title="Right">Frame ▶</button>
+                <button id="scrubForward1s" title="Shift+Right">1s ⏩</button>
+            </div>
+            <div class="mark-controls">
+                <button id="markInBtn" class="mark-btn mark-in-btn" title="I">[ I ] Mark In</button>
+                <button id="markOutBtn" class="mark-btn mark-out-btn" title="O">[ O ] Mark Out</button>
+            </div>
+            <div class="time-display">
+                <span class="time-label">IN:</span> <span id="inTimeDisplay" class="time-value">--</span>
+                <span class="time-label">OUT:</span> <span id="outTimeDisplay" class="time-value">--</span>
+                <span class="time-label">DUR:</span> <span id="durationDisplay" class="time-value">--</span>
+                <span class="time-label">FRAMES:</span> <span id="frameCountDisplay" class="time-value">--</span>
+                <span id="frameValidIndicator" class="frame-valid"></span>
+            </div>
+            <div class="frame-presets">
+                <span class="preset-label">LTX Snap:</span>
+                <button class="preset-btn" data-frames="49" title="~2s @ 24fps">49f (~2s)</button>
+                <button class="preset-btn" data-frames="89" title="~3.7s @ 24fps">89f (~3.7s)</button>
+                <button class="preset-btn" data-frames="121" title="~5s @ 24fps">121f (~5s)</button>
+                <button class="preset-btn" data-frames="161" title="~6.7s @ 24fps">161f (~6.7s)</button>
+                <button id="snapBtn" class="snap-btn" title="Snap out point to nearest valid 8n+1 frame count">Snap to Valid</button>
+            </div>
+        </div>
+
+        <!-- Caption -->
+        <div class="caption-area">
+            <label for="captionInput">Caption (comma-separated tags, first 5 become filename)</label>
+            <textarea id="captionInput" rows="3" placeholder="a woman walking through a park, sunny day, outdoor, nature, peaceful"></textarea>
+        </div>
+
+        <!-- Export -->
+        <div class="export-row">
+            <div class="filename-preview">
+                <span class="filename-label">Filename:</span>
+                <span id="filenamePreview" class="filename-value">--</span>
+            </div>
+            <button id="exportBtn" class="export-btn" title="Enter">⬆ Export Clip</button>
+        </div>
+
+        <!-- Status -->
+        <div id="status" class="status">Ready</div>
+
+        <!-- Keyboard Shortcuts Reference -->
+        <details class="shortcuts">
+            <summary>Keyboard Shortcuts</summary>
+            <table>
+                <tr><td><kbd>I</kbd></td><td>Mark In</td></tr>
+                <tr><td><kbd>O</kbd></td><td>Mark Out</td></tr>
+                <tr><td><kbd>←</kbd></td><td>Step back 1 frame</td></tr>
+                <tr><td><kbd>→</kbd></td><td>Step forward 1 frame</td></tr>
+                <tr><td><kbd>Shift+←</kbd></td><td>Step back 1 second</td></tr>
+                <tr><td><kbd>Shift+→</kbd></td><td>Step forward 1 second</td></tr>
+                <tr><td><kbd>Space</kbd></td><td>Play / Pause</td></tr>
+                <tr><td><kbd>Enter</kbd></td><td>Export clip</td></tr>
+            </table>
+        </details>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
