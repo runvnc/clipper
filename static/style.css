@@ -452,11 +452,26 @@ select {
     margin-bottom: 15px;
 }
 
+.caption-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+
+.clear-caption-btn {
+    background: #b71c1c;
+    font-size: 0.75em;
+    padding: 3px 10px;
+}
+
+.clear-caption-btn:hover {
+    background: #c62828;
+}
+
 .caption-area label {
-    display: block;
     font-size: 0.8em;
     color: #aaa;
-    margin-bottom: 4px;
 }
 
 textarea {

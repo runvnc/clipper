@@ -55,6 +55,7 @@ const cropToggleBtn = document.getElementById('cropToggleBtn');
 const cropResetBtn = document.getElementById('cropResetBtn');
 const cropDimsDisplay = document.getElementById('cropDimsDisplay');
 const playerContainer = document.getElementById('playerContainer');
+const clearCaptionBtn = document.getElementById('clearCaptionBtn');
 
 // --- Utility ---
 
@@ -666,8 +667,7 @@ async function doExport() {
         setStatus(`Exported: ${data.filename}.mp4 + .txt + dataset.json`, 'success');
         inTime = null;
         outTime = null;
-        captionInput.value = '';
-        filenamePreview.textContent = '--';
+        updateFilenamePreview();
         updateMarks();
     } catch (e) {
         setStatus('Export failed: ' + e.message, 'error');
