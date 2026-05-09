@@ -32,15 +32,66 @@
             </select>
         </div>
 
-        <!-- Video Player -->
-        <div class="player-container">
+        <!-- Resolution Bucket -->
+        <div class="bucket-row">
+            <label for="bucketSelect">Resolution Bucket</label>
+            <select id="bucketSelect">
+                <option value="960x544x49">960×544 × 49f (~2s) - Default</option>
+                <option value="768x448x89">768×448 × 89f (~3.7s) - Detailed</option>
+                <option value="512x512x121">512×512 × 121f (~5s) - Motion</option>
+                <option value="960x544x89">960×544 × 89f (~3.7s) - HQ</option>
+                <option value="1088x1920x49">1088×1920 × 49f (~2s) - Portrait</option>
+                <option value="544x960x49">544×960 × 49f (~2s) - Portrait Small</option>
+                <option value="512x512x49">512×512 × 49f (~2s) - Square</option>
+                <option value="custom">Custom...</option>
+            </select>
+            <div id="customBucketFields" class="custom-bucket" style="display:none">
+                <input type="number" id="customW" placeholder="W" min="32" step="32" value="960">
+                <span>×</span>
+                <input type="number" id="customH" placeholder="H" min="32" step="32" value="544">
+                <span>×</span>
+                <input type="number" id="customF" placeholder="Frames" min="1" step="8" value="49">
+            </div>
+        </div>
+
+        <!-- Video Player with Crop Overlay -->
+        <div class="player-container" id="playerContainer">
             <video id="videoPlayer" controls></video>
-            <div class="timeline" id="timeline">
-                <div class="timeline-track">
-                    <div class="clip-region" id="clipRegion"></div>
-                    <div class="marker marker-in" id="markerIn"></div>
-                    <div class="marker marker-out" id="markerOut"></div>
+            <div class="crop-overlay" id="cropOverlay">
+                <div class="crop-shade crop-shade-top" id="cropShadeTop"></div>
+                <div class="crop-shade crop-shade-bottom" id="cropShadeBottom"></div>
+                <div class="crop-shade crop-shade-left" id="cropShadeLeft"></div>
+                <div class="crop-shade crop-shade-right" id="cropShadeRight"></div>
+                <div class="crop-region" id="cropRegionUI">
+                    <div class="crop-handle crop-handle-tl" data-handle="tl"></div>
+                    <div class="crop-handle crop-handle-tr" data-handle="tr"></div>
+                    <div class="crop-handle crop-handle-bl" data-handle="bl"></div>
+                    <div class="crop-handle crop-handle-br" data-handle="br"></div>
+                    <div class="crop-info" id="cropInfo">960×544</div>
                 </div>
+            </div>
+        </div>
+
+        <!-- Crop Controls -->
+        <div class="crop-controls">
+            <button id="cropToggleBtn" class="crop-toggle-btn" title="C">✂ Crop</button>
+            <div class="crop-aspect-btns">
+                <span class="crop-label">Aspect:</span>
+                <button class="aspect-btn active" data-aspect="free">Free</button>
+                <button class="aspect-btn" data-aspect="16:9">16:9</button>
+                <button class="aspect-btn" data-aspect="9:16">9:16</button>
+                <button class="aspect-btn" data-aspect="1:1">1:1</button>
+            </div>
+            <button id="cropResetBtn" class="crop-reset-btn">Reset Crop</button>
+            <span id="cropDimsDisplay" class="crop-dims">No crop</span>
+        </div>
+
+        <!-- Timeline -->
+        <div class="timeline" id="timeline">
+            <div class="timeline-track">
+                <div class="clip-region" id="clipRegion"></div>
+                <div class="marker marker-in" id="markerIn"></div>
+                <div class="marker marker-out" id="markerOut"></div>
             </div>
         </div>
 
@@ -98,12 +149,14 @@
             <table>
                 <tr><td><kbd>I</kbd></td><td>Mark In</td></tr>
                 <tr><td><kbd>O</kbd></td><td>Mark Out</td></tr>
+                <tr><td><kbd>C</kbd></td><td>Toggle crop mode</td></tr>
                 <tr><td><kbd>←</kbd></td><td>Step back 1 frame</td></tr>
                 <tr><td><kbd>→</kbd></td><td>Step forward 1 frame</td></tr>
                 <tr><td><kbd>Shift+←</kbd></td><td>Step back 1 second</td></tr>
                 <tr><td><kbd>Shift+→</kbd></td><td>Step forward 1 second</td></tr>
                 <tr><td><kbd>Space</kbd></td><td>Play / Pause</td></tr>
                 <tr><td><kbd>Enter</kbd></td><td>Export clip</td></tr>
+                <tr><td><kbd>S</kbd></td><td>Snap to valid frame count</td></tr>
             </table>
         </details>
     </div>
