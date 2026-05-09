@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Clipper - Video Clip Tagger for LTX Video 2.3 Fine-Tuning"""
 
+import json
 import os
 import re
 import subprocess
@@ -74,6 +75,35 @@ def is_h264_mp4(filepath: Path) -> bool:
         return result.stdout.strip() == "h264"
     except Exception:
         return False
+
+
+def update_dataset_json(output_dir: Path, clip_filename: str, caption: str):
+    """Append an entry to dataset.json in the output directory.
+    
+    Creates or updates a dataset.json file compatible with LTX-2 trainer.
+    Uses just the clip filename as media_path (relative to output dir).
+    """
+    dataset_path = output_dir / "dataset.json"
+    
+    # Load existing entries
+    entries = []
+    if dataset_path.exists():
+        try:
+            existing = dataset_path.read_text().strip()
+            if existing:
+                entries = json.loads(existing)
+        except (json.JSONDecodeError, OSError):
+            entries = []
+    
+    # Add new entry
+    entries.append({
+        "caption": caption.strip(),
+        "media_path": clip_filename
+    })
+    
+    # Write back
+    dataset_path.write_text(json.dumps(entries, indent=2, ensure_ascii=False) + "\n")
+    return dataset_path
 
 
 # --- API Routes ---
@@ -187,9 +217,13 @@ async def export_clip(req: ExportRequest):
     # Write caption file
     caption_path.write_text(req.caption.strip() + "\n")
 
+    # Update dataset.json for LTX trainer
+    dataset_path = update_dataset_json(output_dir, f"{final_name}.mp4", req.caption)
+
     return {
         "clip_path": str(clip_path),
         "caption_path": str(caption_path),
+        "dataset_path": str(dataset_path),
         "filename": final_name
     }
 

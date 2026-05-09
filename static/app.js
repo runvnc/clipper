@@ -361,7 +361,7 @@ async function doExport() {
         if (!resp.ok) {
             throw new Error(data.detail || 'Export failed');
         }
-        setStatus(`Exported: ${data.filename}.mp4 + .txt`, 'success');
+        setStatus(`Exported: ${data.filename}.mp4 + .txt + dataset.json`, 'success');
         // Clear marks for next clip
         inTime = null;
         outTime = null;
