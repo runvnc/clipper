@@ -203,8 +203,9 @@ async def export_clip(req: ExportRequest):
                 "-ss", str(req.in_time),
                 "-to", str(req.out_time),
                 "-i", str(source_path),
+                "-map", "0:v:0",
+                "-map", "0:a?",
                 "-c", "copy",
-                "-an",
                 str(clip_path)
             ]
         else:
@@ -225,8 +226,10 @@ async def export_clip(req: ExportRequest):
             
             cmd.extend([
                 "-vf", ",".join(vfilters),
+                "-map", "0:v:0",
+                "-map", "0:a?",
                 "-c:v", "libx264", "-preset", "fast", "-crf", "18",
-                "-an",
+                "-c:a", "aac", "-b:a", "128k",
                 str(clip_path)
             ])
 
