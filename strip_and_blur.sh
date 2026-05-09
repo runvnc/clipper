@@ -86,7 +86,7 @@ echo "Blur region: ${BLUR_W}x${BLUR_H} at (${BLUR_X},${BLUR_Y})"
 #   - Overlay the blurred region back onto the main video
 
 BLUR_FILTER="[0:v]split=2[main][blursrc];"\
-"[blursrc]crop=${BLUR_W}:${BLUR_H}:${BLUR_X}:${BLUR_Y},boxblur=20:5[blurred];"\
+"[blursrc]crop=${BLUR_W}:${BLUR_H}:${BLUR_X}:${BLUR_Y},boxblur=18:2:cr=18:cr_mode=average[blurred];"\
 "[main][blurred]overlay=${BLUR_X}:${BLUR_Y}[out]"
 
 ffmpeg -y \
