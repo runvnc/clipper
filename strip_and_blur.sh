@@ -5,7 +5,7 @@
 #        ./strip_and_blur.sh input.mp4  (overwrites with stripped version)
 #
 # 1) Removes first 5s and last 5s from the video
-# 2) Heavily blurs the upper-right region (top 10% height, right 15% width)
+# 2) Heavily blurs the upper-right region (top 10% height, right 30% width)
 #    to obscure watermarks
 #
 # Requires: ffmpeg with libavfilter (boxblur)
@@ -52,9 +52,9 @@ if [ -z "$WIDTH" ] || [ -z "$HEIGHT" ]; then
     exit 1
 fi
 
-# Calculate blur region (top 10%, right 15%)
+# Calculate blur region (top 10%, right 30%)
 BLUR_H=$(echo "$HEIGHT * 10 / 100" | bc)
-BLUR_W=$(echo "$WIDTH * 15 / 100" | bc)
+BLUR_W=$(echo "$WIDTH * 30 / 100" | bc)
 BLUR_X=$(echo "$WIDTH - $BLUR_W" | bc)
 BLUR_Y=0
 
