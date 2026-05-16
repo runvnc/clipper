@@ -15,8 +15,10 @@ for f in *.mp4; do
     echo "Re-encoding: $f"
     
     if ffmpeg -y -i "$f" \
+        -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100 \
         -c:v libx264 -preset fast -crf 18 \
         -vsync cfr \
+        -map 0:v:0 -map 1:a:0 -shortest \
         -c:a aac -b:a 128k \
         -movflags +faststart \
         "$TMP" 2>/dev/null; then

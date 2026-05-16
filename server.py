@@ -298,6 +298,7 @@ async def export_clip(req: ExportRequest):
             "-ss", str(req.in_time),
             "-to", str(req.out_time),
             "-i", str(source_path),
+            "-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=44100",
         ]
 
         # Build video filter chain
@@ -311,7 +312,8 @@ async def export_clip(req: ExportRequest):
             "-vf", ",".join(vfilters),
             "-vsync", "cfr",
             "-map", "0:v:0",
-            "-map", "0:a?",
+            "-map", "1:a:0",
+            "-shortest",
             "-c:v", "libx264", "-preset", "fast", "-crf", "18",
             "-c:a", "aac", "-b:a", "128k",
             "-movflags", "+faststart",
