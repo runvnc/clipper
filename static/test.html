@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Video Scrub Test</title>
+<style>
+body { background: #1a1a2e; color: #e0e0e0; font-family: sans-serif; padding: 40px; max-width: 900px; margin: 0 auto; }
+video { width: 100%; background: #000; border-radius: 6px; }
+.info { margin-top: 15px; font-family: monospace; font-size: 0.9em; }
+.info div { margin: 4px 0; }
+label { color: #888; }
+span { color: #4fc3f7; }
+</style>
+</head>
+<body>
+<h2>Scrub Test</h2>
+<video id="vid" controls src="/api/video/fierycandle0127.mp4?directory=%2Ffiles%2Fxproj%2Flinajx"></video>
+<div class="info">
+<div><label>currentTime: </span><span id="ct">--</span></div>
+<div><label>duration: </span><span id="dur">--</span></div>
+<div><label>seekable ranges: </span><span id="sr">--</span></div>
+<div><label>readyState: </span><span id="rs">--</span></div>
+</div>
+<script>
+const v = document.getElementById('vid');
+const ct = document.getElementById('ct');
+const dur = document.getElementById('dur');
+const sr = document.getElementById('sr');
+const rs = document.getElementById('rs');
+
+function update() {
+    ct.textContent = v.currentTime.toFixed(3);
+    dur.textContent = v.duration.toFixed(3);
+    rs.textContent = v.readyState;
+    if (v.seekable.length > 0) {
+        sr.textContent = `${v.seekable.length} range(s): ${v.seekable.start(0).toFixed(1)} - ${v.seekable.end(0).toFixed(1)}`;
+    } else {
+        sr.textContent = 'none (0 ranges)';
+    }
+}
+
+v.addEventListener('loadedmetadata', update);
+v.addEventListener('timeupdate', update);
+v.addEventListener('seeked', update);
+v.addEventListener('seeking', update);
+v.addEventListener('error', () => {
+    ct.textContent = 'ERROR: ' + v.error?.message;
+});
+</script>
+</body>
+</html>

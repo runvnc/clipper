@@ -1,16 +1,20 @@
 #!/usr/bin/env python3
 """Clipper - Video Clip Tagger for LTX Video 2.3 Fine-Tuning"""
 
+import hashlib
 import json
 import os
 import re
 import subprocess
+import stat
 from pathlib import Path
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi.responses import Response, StreamingResponse
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel
 
 
@@ -19,6 +23,9 @@ app = FastAPI(title="Clipper")
 # Mount static files
 app.mount("/static", StaticFiles(directory=str(Path(__file__).parent / "static")), name="static")
 
+# Cache dir for optimized (faststart) video copies
+OPT_CACHE = Path("/tmp/clipper_cache")
+OPT_CACHE.mkdir(parents=True, exist_ok=True)
 
 # --- Models ---
 
@@ -65,6 +72,50 @@ def unique_filename(output_dir: Path, base_name: str) -> str:
     while (output_dir / f"{base_name}_{n}.mp4").exists():
         n += 1
     return f"{base_name}_{n}"
+
+
+def video_cache_key(filepath: Path) -> str:
+    """Generate a cache key based on file path, size, and mtime."""
+    stat = filepath.stat()
+    raw = f"{filepath.resolve()}:{stat.st_size}:{stat.st_mtime_ns}"
+    return hashlib.md5(raw.encode()).hexdigest()
+
+
+def get_optimized_video(filepath: Path) -> Path:
+    """Return path to an optimized (faststart) copy of the video.
+    
+    Uses -c copy (no re-encoding) + -movflags +faststart to move
+    the moov atom to the front of the file. This makes browser
+    seeking work properly without any quality loss.
+    """
+    key = video_cache_key(filepath)
+    cached = OPT_CACHE / f"{key}{filepath.suffix}"
+    if cached.exists():
+        return cached
+    
+    # Create optimized copy: lossless stream copy with faststart
+    cmd = [
+        "ffmpeg", "-y",
+        "-i", str(filepath),
+        "-c", "copy",           # NO re-encoding!
+        "-movflags", "+faststart",  # Move moov atom to front
+        str(cached)
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+    if result.returncode != 0:
+        # If optimization fails, return original
+        cached.unlink(missing_ok=True)
+        return filepath
+    return cached
+
+
+def cleanup_cache(max_age_hours: int = 24):
+    """Remove cache files older than max_age_hours."""
+    import time
+    cutoff = time.time() - (max_age_hours * 3600)
+    for f in OPT_CACHE.iterdir():
+        if f.stat().st_mtime < cutoff:
+            f.unlink(missing_ok=True)
 
 
 def is_h264_mp4(filepath: Path) -> bool:
@@ -136,19 +187,71 @@ async def list_videos(directory: str = Query(default="")):
 
 
 @app.get("/api/video/{filename:path}")
-async def serve_video(filename: str, directory: str = Query(default="")):
-    """Serve a source video file."""
+async def serve_video(filename: str, directory: str = Query(default=""), request: Request = None):
+    """Serve a source video file with proper range request support."""
     if not directory:
         raise HTTPException(status_code=400, detail="directory query param required")
     filepath = Path(directory) / filename
     if not filepath.is_file():
         raise HTTPException(status_code=404, detail=f"Video not found: {filename}")
-    # Security: ensure the resolved path is within the directory
     try:
         filepath.resolve().relative_to(Path(directory).resolve())
     except ValueError:
         raise HTTPException(status_code=403, detail="Access denied")
-    return FileResponse(str(filepath), media_type="video/mp4")
+    optimized = await run_in_threadpool(get_optimized_video, filepath)
+    file_size = optimized.stat().st_size
+    media_type = "video/mp4" if filepath.suffix.lower() == ".mp4" else "video/webm"
+
+    range_header = request.headers.get("range") if request else None
+    if range_header:
+        # Parse Range: bytes=start-end
+        try:
+            ranges = range_header.replace("bytes=", "").split("-")
+            start = int(ranges[0]) if ranges[0] else 0
+            end = int(ranges[1]) if ranges[1] else file_size - 1
+        except (ValueError, IndexError):
+            start, end = 0, file_size - 1
+        end = min(end, file_size - 1)
+        content_length = end - start + 1
+
+        def ranged_file():
+            with open(optimized, "rb") as f:
+                f.seek(start)
+                remaining = content_length
+                while remaining > 0:
+                    chunk = f.read(min(65536, remaining))
+                    if not chunk:
+                        break
+                    remaining -= len(chunk)
+                    yield chunk
+
+        return StreamingResponse(
+            ranged_file(),
+            status_code=206,
+            media_type=media_type,
+            headers={
+                "Accept-Ranges": "bytes",
+                "Content-Range": f"bytes {start}-{end}/{file_size}",
+                "Content-Length": str(content_length),
+            },
+        )
+    else:
+        def full_file():
+            with open(optimized, "rb") as f:
+                while True:
+                    chunk = f.read(65536)
+                    if not chunk:
+                        break
+                    yield chunk
+
+        return StreamingResponse(
+            full_file(),
+            media_type=media_type,
+            headers={
+                "Accept-Ranges": "bytes",
+                "Content-Length": str(file_size),
+            },
+        )
 
 
 @app.post("/api/preview-filename")
@@ -206,6 +309,7 @@ async def export_clip(req: ExportRequest):
                 "-map", "0:v:0",
                 "-map", "0:a?",
                 "-c", "copy",
+                "-movflags", "+faststart",
                 str(clip_path)
             ]
         else:
