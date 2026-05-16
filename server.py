@@ -289,53 +289,34 @@ async def export_clip(req: ExportRequest):
 
     # Determine if we need to crop
     has_crop = all(v is not None for v in [req.crop_x, req.crop_y, req.crop_w, req.crop_h])
-    
-    # Determine if we can stream copy (no crop, h264 mp4 source)
-    can_stream_copy = (
-        not has_crop and
-        is_h264_mp4(source_path) and 
-        source_path.suffix.lower() == ".mp4"
-    )
 
     # Extract clip with ffmpeg
     try:
-        if can_stream_copy:
-            # Stream copy - fast and lossless
-            cmd = [
-                "ffmpeg", "-y",
-                "-ss", str(req.in_time),
-                "-to", str(req.out_time),
-                "-i", str(source_path),
-                "-map", "0:v:0",
-                "-map", "0:a?",
-                "-c", "copy",
-                "-movflags", "+faststart",
-                str(clip_path)
-            ]
-        else:
-            # Re-encode (needed for crop or non-h264 source)
-            cmd = [
-                "ffmpeg", "-y",
-                "-ss", str(req.in_time),
-                "-to", str(req.out_time),
-                "-i", str(source_path),
-            ]
-            
-            # Build video filter chain
-            vfilters = []
-            if has_crop:
-                vfilters.append(f"crop={req.crop_w}:{req.crop_h}:{req.crop_x}:{req.crop_y}")
-            # Scale to ensure dimensions are multiples of 2 (required for h264)
-            vfilters.append("scale=trunc(iw/2)*2:trunc(ih/2)*2")
-            
-            cmd.extend([
-                "-vf", ",".join(vfilters),
-                "-map", "0:v:0",
-                "-map", "0:a?",
-                "-c:v", "libx264", "-preset", "fast", "-crf", "18",
-                "-c:a", "aac", "-b:a", "128k",
-                str(clip_path)
-            ])
+        # Always re-encode to guarantee correct CFR and container metadata
+        cmd = [
+            "ffmpeg", "-y",
+            "-ss", str(req.in_time),
+            "-to", str(req.out_time),
+            "-i", str(source_path),
+        ]
+
+        # Build video filter chain
+        vfilters = []
+        if has_crop:
+            vfilters.append(f"crop={req.crop_w}:{req.crop_h}:{req.crop_x}:{req.crop_y}")
+        # Scale to ensure dimensions are multiples of 2 (required for h264)
+        vfilters.append("scale=trunc(iw/2)*2:trunc(ih/2)*2")
+
+        cmd.extend([
+            "-vf", ",".join(vfilters),
+            "-vsync", "cfr",
+            "-map", "0:v:0",
+            "-map", "0:a?",
+            "-c:v", "libx264", "-preset", "fast", "-crf", "18",
+            "-c:a", "aac", "-b:a", "128k",
+            "-movflags", "+faststart",
+            str(clip_path)
+        ])
 
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
         if result.returncode != 0:
